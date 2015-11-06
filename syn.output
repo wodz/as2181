@@ -1,0 +1,3744 @@
+Grammar
+
+    0 $accept: main $end
+
+    1 main: /* empty */
+    2     | main GOT_EOF
+    3     | error ';'
+    4     | error GOT_EOF
+    5     | main pseudo ';'
+    6     | main insn
+
+    7 pseudo: module
+    8       | var
+    9       | init
+   10       | endmod
+   11       | constant
+   12       | global
+   13       | external
+   14       | unsupp
+
+   15 global: globala SYM
+
+   16 globala: global ','
+   17        | ENTRY
+
+   18 external: external ',' SYM
+   19         | EXTERNAL SYM
+
+   20 unsupp: GLOBAL SYM
+   21       | unsupp ',' SYM
+
+   22 init: inita expr
+
+   23 inita: INIT SYM varsize ':'
+   24      | init ','
+
+   25 constant: consym '=' expr
+
+   26 consym: CONST SYM
+   27       | constant ',' SYM
+
+   28 module: MODULE memattr SYM
+
+   29 endmod: ENDMOD
+
+   30 var: varstart SYM varsize
+
+   31 varstart: VAR memattr
+   32         | var ','
+
+   33 varsize: /* empty */
+   34        | '[' expr ']'
+
+   35 memattra: /* empty */
+   36         | memattra '/' romram
+   37         | memattra '/' pmdm
+   38         | memattra '/' CIRC
+
+   39 memattrb: memattra
+   40         | memattra '/' ABS '=' expr
+
+   41 memattr: memattrb
+
+   42 romram: ROM
+   43       | RAM
+
+   44 insn: label
+   45     | ichain ';'
+
+   46 label: SYM ':'
+
+   47 ichain: iins
+   48       | gins
+   49       | jchain iins
+   50       | jchain gins
+
+   51 jchain: ichain ','
+   52       | iff
+
+   53 iins: alu
+   54     | mac
+   55     | shift
+   56     | spec
+
+   57 gins: pdxfer
+   58     | regxfer
+
+   59 iff: IF cond
+   60    | IF maybenot FLAG_IN
+
+   61 maybenot: /* empty */
+   62         | NOT
+
+   63 pdxfer: regeq memref
+   64       | memref '=' REG
+
+   65 memref: pmdml REG ',' REG ')'
+
+   66 pmdml: pmdm '('
+
+   67 pmdm: PM
+   68     | DM
+
+   69 regxfer: regeq REG
+
+   70 alu: regeq alur
+   71    | NONE '=' alur
+   72    | DIVS REG ',' REG
+   73    | DIVQ REG
+
+   74 alur: REG alucomm REG
+   75     | regplus REG
+   76     | regplus carried
+   77     | regminus REG
+   78     | regminus REG '+' CARRY '-' NUM
+   79     | PASS REG
+   80     | '-' REG
+   81     | NOT REG
+   82     | ABS REG
+   83     | regplus nexpr
+   84     | regminus nexpr
+   85     | PASS nexpr
+   86     | bitop nexpr OF REG
+
+   87 carried: regplus CARRY
+   88        | CARRY
+
+   89 regplus: REG '+'
+
+   90 regminus: REG '-'
+
+   91 alucomm: AND
+   92        | OR
+   93        | XOR
+
+   94 bitop: TSTBIT
+   95      | SETBIT
+   96      | CLRBIT
+   97      | TGLBIT
+
+   98 regeq: REG '='
+
+   99 nexpr: expr
+
+  100 mac: mrormf '=' macrs
+
+  101 mrormf: MR
+  102       | MF
+
+  103 macrs: macmul
+  104      | mrpm macmul
+  105      | MR
+  106      | MR MACCLASS
+  107      | expr
+
+  108 mrpm: MR '+'
+  109     | MR '-'
+
+  110 macmul: REG '*' macr MACCLASS
+
+  111 macr: REG
+  112     | MF
+
+  113 shift: SR '=' mayshor shifter shrega SHCLASS
+  114      | regeq EXP shreg SHCLASS
+  115      | regeq EXPADJ shreg
+  116      | SAT MR
+
+  117 shreg: REG
+
+  118 shrega: shreg
+  119       | shreg BY expr
+
+  120 shifter: ASHIFT
+  121        | LSHIFT
+  122        | NORM
+
+  123 mayshor: /* empty */
+  124        | SR OR
+
+  125 spec: regeq DMOVLAY
+  126     | DMOVLAY '=' REG
+  127     | regeq expr
+  128     | regeq ioref
+  129     | ioref '=' REG
+  130     | NOP
+  131     | IDLE
+  132     | IDLE expr
+  133     | MODIFY '(' REG ',' REG ')'
+  134     | PUSH popreg
+  135     | POP popreg
+  136     | enadis INTS
+  137     | enadis ENADISREG
+  138     | srt FLAG
+  139     | DO expr ucond
+  140     | RTS
+  141     | RTI
+  142     | calljump '(' REG ')'
+  143     | calljump expr
+  144     | regeq pmdml expr ')'
+  145     | pmdml expr ')' '=' REG
+  146     | memref '=' expr
+
+  147 popreg: POPREG
+  148       | REG
+
+  149 ucond: UNTIL cond
+  150      | /* empty */
+  151      | UNTIL FOREVER
+
+  152 srt: SET
+  153    | RESET
+  154    | TOGGLE
+
+  155 ioref: IO '(' expr ')'
+
+  156 calljump: CALL
+  157         | JUMP
+
+  158 enadis: ENA
+  159       | DIS
+
+  160 cond: COND
+  161     | NOT COND
+
+  162 expr: NUM
+  163     | '(' expr ')'
+  164     | expr '+' expr
+  165     | expr '-' expr
+  166     | expr '*' expr
+  167     | expr '/' expr
+  168     | expr AND expr
+  169     | expr OR expr
+  170     | expr XOR expr
+  171     | expr LL expr
+  172     | expr RR expr
+  173     | '-' expr
+  174     | NOT expr
+  175     | ABS expr
+  176     | '^' expr
+  177     | '%' expr
+  178     | SYM
+
+
+Terminals, with rules where they appear
+
+$end (0) 0
+'%' (37) 177
+'(' (40) 66 133 142 155 163
+')' (41) 65 133 142 144 145 155 163
+'*' (42) 110 166
+'+' (43) 78 89 108 164
+',' (44) 16 18 21 24 27 32 51 65 72 133
+'-' (45) 78 80 90 109 165 173
+'/' (47) 36 37 38 40 167
+':' (58) 23 46
+';' (59) 3 5 45
+'=' (61) 25 40 64 71 98 100 113 126 129 145 146
+'U' (85)
+'[' (91) 34
+']' (93) 34
+'^' (94) 176
+error (256) 3 4
+GOT_EOF (258) 2 4
+CARRY (259) 78 87 88
+AND (260) 91 168
+OR (261) 92 124 169
+XOR (262) 93 170
+IF (263) 59 60
+PASS (264) 79 85
+NOT (265) 62 81 161 174
+ABS (266) 40 82 175
+DIVS (267) 72
+DIVQ (268) 73
+TSTBIT (269) 94
+DM (270) 68
+PM (271) 67
+IO (272) 155
+OF (273) 86
+SETBIT (274) 95
+CLRBIT (275) 96
+TGLBIT (276) 97
+ASHIFT (277) 120
+LSHIFT (278) 121
+NORM (279) 122
+EXP (280) 114
+EXPADJ (281) 115
+BY (282) 119
+DMOVLAY (283) 125 126
+DO (284) 139
+NONE (285) 71
+UNTIL (286) 149 151
+JUMP (287) 157
+CALL (288) 156
+FLAG_IN (289) 60
+RTS (290) 140
+RTI (291) 141
+IDLE (292) 131 132
+NOP (293) 130
+MODIFY (294) 133
+PUSH (295) 134
+POP (296) 135
+SET (297) 152
+CONST (298) 26
+SR (299) 113 124
+RESET (300) 153
+TOGGLE (301) 154
+ENA (302) 158
+DIS (303) 159
+FOREVER (304) 151
+MODULE (305) 28
+VAR (306) 31
+ROM (307) 42
+RAM (308) 43
+ENDMOD (309) 29
+CIRC (310) 38
+LL (311) 171
+RR (312) 172
+INIT (313) 23
+MR (314) 101 105 106 108 109 116
+MF (315) 102 112
+INTS (316) 136
+SAT (317) 116
+ENTRY (318) 17
+EXTERNAL (319) 19
+GLOBAL (320) 20
+NUM (321) 78 162
+REG (322) 64 65 69 72 73 74 75 77 78 79 80 81 82 86 89 90 98 110 111
+    117 126 129 133 142 145 148
+COND (323) 160 161
+MACCLASS (324) 106 110
+SHCLASS (325) 113 114
+FLAG (326) 138
+POPREG (327) 147
+ENADISREG (328) 137
+SYM (329) 15 18 19 20 21 23 26 27 28 30 46 178
+
+
+Nonterminals, with rules where they appear
+
+$accept (90)
+    on left: 0
+main (91)
+    on left: 1 2 3 4 5 6, on right: 0 2 5 6
+pseudo (92)
+    on left: 7 8 9 10 11 12 13 14, on right: 5
+global (93)
+    on left: 15, on right: 12 16
+globala (94)
+    on left: 16 17, on right: 15
+external (95)
+    on left: 18 19, on right: 13 18
+unsupp (96)
+    on left: 20 21, on right: 14 21
+init (97)
+    on left: 22, on right: 9 24
+inita (98)
+    on left: 23 24, on right: 22
+constant (99)
+    on left: 25, on right: 11 27
+consym (100)
+    on left: 26 27, on right: 25
+module (101)
+    on left: 28, on right: 7
+endmod (102)
+    on left: 29, on right: 10
+var (103)
+    on left: 30, on right: 8 32
+varstart (104)
+    on left: 31 32, on right: 30
+varsize (105)
+    on left: 33 34, on right: 23 30
+memattra (106)
+    on left: 35 36 37 38, on right: 36 37 38 39 40
+memattrb (107)
+    on left: 39 40, on right: 41
+memattr (108)
+    on left: 41, on right: 28 31
+romram (109)
+    on left: 42 43, on right: 36
+insn (110)
+    on left: 44 45, on right: 6
+label (111)
+    on left: 46, on right: 44
+ichain (112)
+    on left: 47 48 49 50, on right: 45 51
+jchain (113)
+    on left: 51 52, on right: 49 50
+iins (114)
+    on left: 53 54 55 56, on right: 47 49
+gins (115)
+    on left: 57 58, on right: 48 50
+iff (116)
+    on left: 59 60, on right: 52
+maybenot (117)
+    on left: 61 62, on right: 60
+pdxfer (118)
+    on left: 63 64, on right: 57
+memref (119)
+    on left: 65, on right: 63 64 146
+pmdml (120)
+    on left: 66, on right: 65 144 145
+pmdm (121)
+    on left: 67 68, on right: 37 66
+regxfer (122)
+    on left: 69, on right: 58
+alu (123)
+    on left: 70 71 72 73, on right: 53
+alur (124)
+    on left: 74 75 76 77 78 79 80 81 82 83 84 85 86, on right: 70 71
+carried (125)
+    on left: 87 88, on right: 76
+regplus (126)
+    on left: 89, on right: 75 76 83 87
+regminus (127)
+    on left: 90, on right: 77 78 84
+alucomm (128)
+    on left: 91 92 93, on right: 74
+bitop (129)
+    on left: 94 95 96 97, on right: 86
+regeq (130)
+    on left: 98, on right: 63 69 70 114 115 125 127 128 144
+nexpr (131)
+    on left: 99, on right: 83 84 85 86
+mac (132)
+    on left: 100, on right: 54
+mrormf (133)
+    on left: 101 102, on right: 100
+macrs (134)
+    on left: 103 104 105 106 107, on right: 100
+mrpm (135)
+    on left: 108 109, on right: 104
+macmul (136)
+    on left: 110, on right: 103 104
+macr (137)
+    on left: 111 112, on right: 110
+shift (138)
+    on left: 113 114 115 116, on right: 55
+shreg (139)
+    on left: 117, on right: 114 115 118 119
+shrega (140)
+    on left: 118 119, on right: 113
+shifter (141)
+    on left: 120 121 122, on right: 113
+mayshor (142)
+    on left: 123 124, on right: 113
+spec (143)
+    on left: 125 126 127 128 129 130 131 132 133 134 135 136 137 138
+    139 140 141 142 143 144 145 146, on right: 56
+popreg (144)
+    on left: 147 148, on right: 134 135
+ucond (145)
+    on left: 149 150 151, on right: 139
+srt (146)
+    on left: 152 153 154, on right: 138
+ioref (147)
+    on left: 155, on right: 128 129
+calljump (148)
+    on left: 156 157, on right: 142 143
+enadis (149)
+    on left: 158 159, on right: 136 137
+cond (150)
+    on left: 160 161, on right: 59 149
+expr (151)
+    on left: 162 163 164 165 166 167 168 169 170 171 172 173 174 175
+    176 177 178, on right: 22 25 34 40 99 107 119 127 132 139 143 144
+    145 146 155 163 164 165 166 167 168 169 170 171 172 173 174 175
+    176 177
+
+
+State 0
+
+    0 $accept: . main $end
+
+    error  shift, and go to state 1
+
+    $end      reduce using rule 1 (main)
+    GOT_EOF   reduce using rule 1 (main)
+    IF        reduce using rule 1 (main)
+    DIVS      reduce using rule 1 (main)
+    DIVQ      reduce using rule 1 (main)
+    DM        reduce using rule 1 (main)
+    PM        reduce using rule 1 (main)
+    IO        reduce using rule 1 (main)
+    DMOVLAY   reduce using rule 1 (main)
+    DO        reduce using rule 1 (main)
+    NONE      reduce using rule 1 (main)
+    JUMP      reduce using rule 1 (main)
+    CALL      reduce using rule 1 (main)
+    RTS       reduce using rule 1 (main)
+    RTI       reduce using rule 1 (main)
+    IDLE      reduce using rule 1 (main)
+    NOP       reduce using rule 1 (main)
+    MODIFY    reduce using rule 1 (main)
+    PUSH      reduce using rule 1 (main)
+    POP       reduce using rule 1 (main)
+    SET       reduce using rule 1 (main)
+    CONST     reduce using rule 1 (main)
+    SR        reduce using rule 1 (main)
+    RESET     reduce using rule 1 (main)
+    TOGGLE    reduce using rule 1 (main)
+    ENA       reduce using rule 1 (main)
+    DIS       reduce using rule 1 (main)
+    MODULE    reduce using rule 1 (main)
+    VAR       reduce using rule 1 (main)
+    ENDMOD    reduce using rule 1 (main)
+    INIT      reduce using rule 1 (main)
+    MR        reduce using rule 1 (main)
+    MF        reduce using rule 1 (main)
+    SAT       reduce using rule 1 (main)
+    ENTRY     reduce using rule 1 (main)
+    EXTERNAL  reduce using rule 1 (main)
+    GLOBAL    reduce using rule 1 (main)
+    REG       reduce using rule 1 (main)
+    SYM       reduce using rule 1 (main)
+
+    main  go to state 2
+
+
+State 1
+
+    3 main: error . ';'
+    4     | error . GOT_EOF
+
+    GOT_EOF  shift, and go to state 3
+    ';'      shift, and go to state 4
+
+
+State 2
+
+    0 $accept: main . $end
+    2 main: main . GOT_EOF
+    5     | main . pseudo ';'
+    6     | main . insn
+
+    $end      shift, and go to state 5
+    GOT_EOF   shift, and go to state 6
+    IF        shift, and go to state 7
+    DIVS      shift, and go to state 8
+    DIVQ      shift, and go to state 9
+    DM        shift, and go to state 10
+    PM        shift, and go to state 11
+    IO        shift, and go to state 12
+    DMOVLAY   shift, and go to state 13
+    DO        shift, and go to state 14
+    NONE      shift, and go to state 15
+    JUMP      shift, and go to state 16
+    CALL      shift, and go to state 17
+    RTS       shift, and go to state 18
+    RTI       shift, and go to state 19
+    IDLE      shift, and go to state 20
+    NOP       shift, and go to state 21
+    MODIFY    shift, and go to state 22
+    PUSH      shift, and go to state 23
+    POP       shift, and go to state 24
+    SET       shift, and go to state 25
+    CONST     shift, and go to state 26
+    SR        shift, and go to state 27
+    RESET     shift, and go to state 28
+    TOGGLE    shift, and go to state 29
+    ENA       shift, and go to state 30
+    DIS       shift, and go to state 31
+    MODULE    shift, and go to state 32
+    VAR       shift, and go to state 33
+    ENDMOD    shift, and go to state 34
+    INIT      shift, and go to state 35
+    MR        shift, and go to state 36
+    MF        shift, and go to state 37
+    SAT       shift, and go to state 38
+    ENTRY     shift, and go to state 39
+    EXTERNAL  shift, and go to state 40
+    GLOBAL    shift, and go to state 41
+    REG       shift, and go to state 42
+    SYM       shift, and go to state 43
+
+    pseudo    go to state 44
+    global    go to state 45
+    globala   go to state 46
+    external  go to state 47
+    unsupp    go to state 48
+    init      go to state 49
+    inita     go to state 50
+    constant  go to state 51
+    consym    go to state 52
+    module    go to state 53
+    endmod    go to state 54
+    var       go to state 55
+    varstart  go to state 56
+    insn      go to state 57
+    label     go to state 58
+    ichain    go to state 59
+    jchain    go to state 60
+    iins      go to state 61
+    gins      go to state 62
+    iff       go to state 63
+    pdxfer    go to state 64
+    memref    go to state 65
+    pmdml     go to state 66
+    pmdm      go to state 67
+    regxfer   go to state 68
+    alu       go to state 69
+    regeq     go to state 70
+    mac       go to state 71
+    mrormf    go to state 72
+    shift     go to state 73
+    spec      go to state 74
+    srt       go to state 75
+    ioref     go to state 76
+    calljump  go to state 77
+    enadis    go to state 78
+
+
+State 3
+
+    4 main: error GOT_EOF .
+
+    $default  reduce using rule 4 (main)
+
+
+State 4
+
+    3 main: error ';' .
+
+    $default  reduce using rule 3 (main)
+
+
+State 5
+
+    0 $accept: main $end .
+
+    $default  accept
+
+
+State 6
+
+    2 main: main GOT_EOF .
+
+    $default  reduce using rule 2 (main)
+
+
+State 7
+
+   59 iff: IF . cond
+   60    | IF . maybenot FLAG_IN
+
+    NOT   shift, and go to state 79
+    COND  shift, and go to state 80
+
+    $default  reduce using rule 61 (maybenot)
+
+    maybenot  go to state 81
+    cond      go to state 82
+
+
+State 8
+
+   72 alu: DIVS . REG ',' REG
+
+    REG  shift, and go to state 83
+
+
+State 9
+
+   73 alu: DIVQ . REG
+
+    REG  shift, and go to state 84
+
+
+State 10
+
+   68 pmdm: DM .
+
+    $default  reduce using rule 68 (pmdm)
+
+
+State 11
+
+   67 pmdm: PM .
+
+    $default  reduce using rule 67 (pmdm)
+
+
+State 12
+
+  155 ioref: IO . '(' expr ')'
+
+    '('  shift, and go to state 85
+
+
+State 13
+
+  126 spec: DMOVLAY . '=' REG
+
+    '='  shift, and go to state 86
+
+
+State 14
+
+  139 spec: DO . expr ucond
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 95
+
+
+State 15
+
+   71 alu: NONE . '=' alur
+
+    '='  shift, and go to state 96
+
+
+State 16
+
+  157 calljump: JUMP .
+
+    $default  reduce using rule 157 (calljump)
+
+
+State 17
+
+  156 calljump: CALL .
+
+    $default  reduce using rule 156 (calljump)
+
+
+State 18
+
+  140 spec: RTS .
+
+    $default  reduce using rule 140 (spec)
+
+
+State 19
+
+  141 spec: RTI .
+
+    $default  reduce using rule 141 (spec)
+
+
+State 20
+
+  131 spec: IDLE .
+  132     | IDLE . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    $default  reduce using rule 131 (spec)
+
+    expr  go to state 97
+
+
+State 21
+
+  130 spec: NOP .
+
+    $default  reduce using rule 130 (spec)
+
+
+State 22
+
+  133 spec: MODIFY . '(' REG ',' REG ')'
+
+    '('  shift, and go to state 98
+
+
+State 23
+
+  134 spec: PUSH . popreg
+
+    REG     shift, and go to state 99
+    POPREG  shift, and go to state 100
+
+    popreg  go to state 101
+
+
+State 24
+
+  135 spec: POP . popreg
+
+    REG     shift, and go to state 99
+    POPREG  shift, and go to state 100
+
+    popreg  go to state 102
+
+
+State 25
+
+  152 srt: SET .
+
+    $default  reduce using rule 152 (srt)
+
+
+State 26
+
+   26 consym: CONST . SYM
+
+    SYM  shift, and go to state 103
+
+
+State 27
+
+  113 shift: SR . '=' mayshor shifter shrega SHCLASS
+
+    '='  shift, and go to state 104
+
+
+State 28
+
+  153 srt: RESET .
+
+    $default  reduce using rule 153 (srt)
+
+
+State 29
+
+  154 srt: TOGGLE .
+
+    $default  reduce using rule 154 (srt)
+
+
+State 30
+
+  158 enadis: ENA .
+
+    $default  reduce using rule 158 (enadis)
+
+
+State 31
+
+  159 enadis: DIS .
+
+    $default  reduce using rule 159 (enadis)
+
+
+State 32
+
+   28 module: MODULE . memattr SYM
+
+    $default  reduce using rule 35 (memattra)
+
+    memattra  go to state 105
+    memattrb  go to state 106
+    memattr   go to state 107
+
+
+State 33
+
+   31 varstart: VAR . memattr
+
+    $default  reduce using rule 35 (memattra)
+
+    memattra  go to state 105
+    memattrb  go to state 106
+    memattr   go to state 108
+
+
+State 34
+
+   29 endmod: ENDMOD .
+
+    $default  reduce using rule 29 (endmod)
+
+
+State 35
+
+   23 inita: INIT . SYM varsize ':'
+
+    SYM  shift, and go to state 109
+
+
+State 36
+
+  101 mrormf: MR .
+
+    $default  reduce using rule 101 (mrormf)
+
+
+State 37
+
+  102 mrormf: MF .
+
+    $default  reduce using rule 102 (mrormf)
+
+
+State 38
+
+  116 shift: SAT . MR
+
+    MR  shift, and go to state 110
+
+
+State 39
+
+   17 globala: ENTRY .
+
+    $default  reduce using rule 17 (globala)
+
+
+State 40
+
+   19 external: EXTERNAL . SYM
+
+    SYM  shift, and go to state 111
+
+
+State 41
+
+   20 unsupp: GLOBAL . SYM
+
+    SYM  shift, and go to state 112
+
+
+State 42
+
+   98 regeq: REG . '='
+
+    '='  shift, and go to state 113
+
+
+State 43
+
+   46 label: SYM . ':'
+
+    ':'  shift, and go to state 114
+
+
+State 44
+
+    5 main: main pseudo . ';'
+
+    ';'  shift, and go to state 115
+
+
+State 45
+
+   12 pseudo: global .
+   16 globala: global . ','
+
+    ','  shift, and go to state 116
+
+    $default  reduce using rule 12 (pseudo)
+
+
+State 46
+
+   15 global: globala . SYM
+
+    SYM  shift, and go to state 117
+
+
+State 47
+
+   13 pseudo: external .
+   18 external: external . ',' SYM
+
+    ','  shift, and go to state 118
+
+    $default  reduce using rule 13 (pseudo)
+
+
+State 48
+
+   14 pseudo: unsupp .
+   21 unsupp: unsupp . ',' SYM
+
+    ','  shift, and go to state 119
+
+    $default  reduce using rule 14 (pseudo)
+
+
+State 49
+
+    9 pseudo: init .
+   24 inita: init . ','
+
+    ','  shift, and go to state 120
+
+    $default  reduce using rule 9 (pseudo)
+
+
+State 50
+
+   22 init: inita . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 121
+
+
+State 51
+
+   11 pseudo: constant .
+   27 consym: constant . ',' SYM
+
+    ','  shift, and go to state 122
+
+    $default  reduce using rule 11 (pseudo)
+
+
+State 52
+
+   25 constant: consym . '=' expr
+
+    '='  shift, and go to state 123
+
+
+State 53
+
+    7 pseudo: module .
+
+    $default  reduce using rule 7 (pseudo)
+
+
+State 54
+
+   10 pseudo: endmod .
+
+    $default  reduce using rule 10 (pseudo)
+
+
+State 55
+
+    8 pseudo: var .
+   32 varstart: var . ','
+
+    ','  shift, and go to state 124
+
+    $default  reduce using rule 8 (pseudo)
+
+
+State 56
+
+   30 var: varstart . SYM varsize
+
+    SYM  shift, and go to state 125
+
+
+State 57
+
+    6 main: main insn .
+
+    $default  reduce using rule 6 (main)
+
+
+State 58
+
+   44 insn: label .
+
+    $default  reduce using rule 44 (insn)
+
+
+State 59
+
+   45 insn: ichain . ';'
+   51 jchain: ichain . ','
+
+    ';'  shift, and go to state 126
+    ','  shift, and go to state 127
+
+
+State 60
+
+   49 ichain: jchain . iins
+   50       | jchain . gins
+
+    DIVS     shift, and go to state 8
+    DIVQ     shift, and go to state 9
+    DM       shift, and go to state 10
+    PM       shift, and go to state 11
+    IO       shift, and go to state 12
+    DMOVLAY  shift, and go to state 13
+    DO       shift, and go to state 14
+    NONE     shift, and go to state 15
+    JUMP     shift, and go to state 16
+    CALL     shift, and go to state 17
+    RTS      shift, and go to state 18
+    RTI      shift, and go to state 19
+    IDLE     shift, and go to state 20
+    NOP      shift, and go to state 21
+    MODIFY   shift, and go to state 22
+    PUSH     shift, and go to state 23
+    POP      shift, and go to state 24
+    SET      shift, and go to state 25
+    SR       shift, and go to state 27
+    RESET    shift, and go to state 28
+    TOGGLE   shift, and go to state 29
+    ENA      shift, and go to state 30
+    DIS      shift, and go to state 31
+    MR       shift, and go to state 36
+    MF       shift, and go to state 37
+    SAT      shift, and go to state 38
+    REG      shift, and go to state 42
+
+    iins      go to state 128
+    gins      go to state 129
+    pdxfer    go to state 64
+    memref    go to state 65
+    pmdml     go to state 66
+    pmdm      go to state 67
+    regxfer   go to state 68
+    alu       go to state 69
+    regeq     go to state 70
+    mac       go to state 71
+    mrormf    go to state 72
+    shift     go to state 73
+    spec      go to state 74
+    srt       go to state 75
+    ioref     go to state 76
+    calljump  go to state 77
+    enadis    go to state 78
+
+
+State 61
+
+   47 ichain: iins .
+
+    $default  reduce using rule 47 (ichain)
+
+
+State 62
+
+   48 ichain: gins .
+
+    $default  reduce using rule 48 (ichain)
+
+
+State 63
+
+   52 jchain: iff .
+
+    $default  reduce using rule 52 (jchain)
+
+
+State 64
+
+   57 gins: pdxfer .
+
+    $default  reduce using rule 57 (gins)
+
+
+State 65
+
+   64 pdxfer: memref . '=' REG
+  146 spec: memref . '=' expr
+
+    '='  shift, and go to state 130
+
+
+State 66
+
+   65 memref: pmdml . REG ',' REG ')'
+  145 spec: pmdml . expr ')' '=' REG
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    REG  shift, and go to state 131
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 132
+
+
+State 67
+
+   66 pmdml: pmdm . '('
+
+    '('  shift, and go to state 133
+
+
+State 68
+
+   58 gins: regxfer .
+
+    $default  reduce using rule 58 (gins)
+
+
+State 69
+
+   53 iins: alu .
+
+    $default  reduce using rule 53 (iins)
+
+
+State 70
+
+   63 pdxfer: regeq . memref
+   69 regxfer: regeq . REG
+   70 alu: regeq . alur
+  114 shift: regeq . EXP shreg SHCLASS
+  115      | regeq . EXPADJ shreg
+  125 spec: regeq . DMOVLAY
+  127     | regeq . expr
+  128     | regeq . ioref
+  144     | regeq . pmdml expr ')'
+
+    PASS     shift, and go to state 134
+    NOT      shift, and go to state 135
+    ABS      shift, and go to state 136
+    TSTBIT   shift, and go to state 137
+    DM       shift, and go to state 10
+    PM       shift, and go to state 11
+    IO       shift, and go to state 12
+    SETBIT   shift, and go to state 138
+    CLRBIT   shift, and go to state 139
+    TGLBIT   shift, and go to state 140
+    EXP      shift, and go to state 141
+    EXPADJ   shift, and go to state 142
+    DMOVLAY  shift, and go to state 143
+    NUM      shift, and go to state 89
+    REG      shift, and go to state 144
+    SYM      shift, and go to state 90
+    '-'      shift, and go to state 145
+    '^'      shift, and go to state 92
+    '%'      shift, and go to state 93
+    '('      shift, and go to state 94
+
+    memref    go to state 146
+    pmdml     go to state 147
+    pmdm      go to state 67
+    alur      go to state 148
+    regplus   go to state 149
+    regminus  go to state 150
+    bitop     go to state 151
+    ioref     go to state 152
+    expr      go to state 153
+
+
+State 71
+
+   54 iins: mac .
+
+    $default  reduce using rule 54 (iins)
+
+
+State 72
+
+  100 mac: mrormf . '=' macrs
+
+    '='  shift, and go to state 154
+
+
+State 73
+
+   55 iins: shift .
+
+    $default  reduce using rule 55 (iins)
+
+
+State 74
+
+   56 iins: spec .
+
+    $default  reduce using rule 56 (iins)
+
+
+State 75
+
+  138 spec: srt . FLAG
+
+    FLAG  shift, and go to state 155
+
+
+State 76
+
+  129 spec: ioref . '=' REG
+
+    '='  shift, and go to state 156
+
+
+State 77
+
+  142 spec: calljump . '(' REG ')'
+  143     | calljump . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 157
+
+    expr  go to state 158
+
+
+State 78
+
+  136 spec: enadis . INTS
+  137     | enadis . ENADISREG
+
+    INTS       shift, and go to state 159
+    ENADISREG  shift, and go to state 160
+
+
+State 79
+
+   62 maybenot: NOT .
+  161 cond: NOT . COND
+
+    COND  shift, and go to state 161
+
+    $default  reduce using rule 62 (maybenot)
+
+
+State 80
+
+  160 cond: COND .
+
+    $default  reduce using rule 160 (cond)
+
+
+State 81
+
+   60 iff: IF maybenot . FLAG_IN
+
+    FLAG_IN  shift, and go to state 162
+
+
+State 82
+
+   59 iff: IF cond .
+
+    $default  reduce using rule 59 (iff)
+
+
+State 83
+
+   72 alu: DIVS REG . ',' REG
+
+    ','  shift, and go to state 163
+
+
+State 84
+
+   73 alu: DIVQ REG .
+
+    $default  reduce using rule 73 (alu)
+
+
+State 85
+
+  155 ioref: IO '(' . expr ')'
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 164
+
+
+State 86
+
+  126 spec: DMOVLAY '=' . REG
+
+    REG  shift, and go to state 165
+
+
+State 87
+
+  174 expr: NOT . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 166
+
+
+State 88
+
+  175 expr: ABS . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 167
+
+
+State 89
+
+  162 expr: NUM .
+
+    $default  reduce using rule 162 (expr)
+
+
+State 90
+
+  178 expr: SYM .
+
+    $default  reduce using rule 178 (expr)
+
+
+State 91
+
+  173 expr: '-' . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 168
+
+
+State 92
+
+  176 expr: '^' . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 169
+
+
+State 93
+
+  177 expr: '%' . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 170
+
+
+State 94
+
+  163 expr: '(' . expr ')'
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 171
+
+
+State 95
+
+  139 spec: DO expr . ucond
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND    shift, and go to state 172
+    OR     shift, and go to state 173
+    XOR    shift, and go to state 174
+    UNTIL  shift, and go to state 175
+    LL     shift, and go to state 176
+    RR     shift, and go to state 177
+    '+'    shift, and go to state 178
+    '-'    shift, and go to state 179
+    '*'    shift, and go to state 180
+    '/'    shift, and go to state 181
+
+    $default  reduce using rule 150 (ucond)
+
+    ucond  go to state 182
+
+
+State 96
+
+   71 alu: NONE '=' . alur
+
+    PASS    shift, and go to state 134
+    NOT     shift, and go to state 183
+    ABS     shift, and go to state 184
+    TSTBIT  shift, and go to state 137
+    SETBIT  shift, and go to state 138
+    CLRBIT  shift, and go to state 139
+    TGLBIT  shift, and go to state 140
+    REG     shift, and go to state 185
+    '-'     shift, and go to state 186
+
+    alur      go to state 187
+    regplus   go to state 149
+    regminus  go to state 150
+    bitop     go to state 151
+
+
+State 97
+
+  132 spec: IDLE expr .
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND  shift, and go to state 172
+    OR   shift, and go to state 173
+    XOR  shift, and go to state 174
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+
+    $default  reduce using rule 132 (spec)
+
+
+State 98
+
+  133 spec: MODIFY '(' . REG ',' REG ')'
+
+    REG  shift, and go to state 188
+
+
+State 99
+
+  148 popreg: REG .
+
+    $default  reduce using rule 148 (popreg)
+
+
+State 100
+
+  147 popreg: POPREG .
+
+    $default  reduce using rule 147 (popreg)
+
+
+State 101
+
+  134 spec: PUSH popreg .
+
+    $default  reduce using rule 134 (spec)
+
+
+State 102
+
+  135 spec: POP popreg .
+
+    $default  reduce using rule 135 (spec)
+
+
+State 103
+
+   26 consym: CONST SYM .
+
+    $default  reduce using rule 26 (consym)
+
+
+State 104
+
+  113 shift: SR '=' . mayshor shifter shrega SHCLASS
+
+    SR  shift, and go to state 189
+
+    $default  reduce using rule 123 (mayshor)
+
+    mayshor  go to state 190
+
+
+State 105
+
+   36 memattra: memattra . '/' romram
+   37         | memattra . '/' pmdm
+   38         | memattra . '/' CIRC
+   39 memattrb: memattra .
+   40         | memattra . '/' ABS '=' expr
+
+    '/'  shift, and go to state 191
+
+    $default  reduce using rule 39 (memattrb)
+
+
+State 106
+
+   41 memattr: memattrb .
+
+    $default  reduce using rule 41 (memattr)
+
+
+State 107
+
+   28 module: MODULE memattr . SYM
+
+    SYM  shift, and go to state 192
+
+
+State 108
+
+   31 varstart: VAR memattr .
+
+    $default  reduce using rule 31 (varstart)
+
+
+State 109
+
+   23 inita: INIT SYM . varsize ':'
+
+    '['  shift, and go to state 193
+
+    $default  reduce using rule 33 (varsize)
+
+    varsize  go to state 194
+
+
+State 110
+
+  116 shift: SAT MR .
+
+    $default  reduce using rule 116 (shift)
+
+
+State 111
+
+   19 external: EXTERNAL SYM .
+
+    $default  reduce using rule 19 (external)
+
+
+State 112
+
+   20 unsupp: GLOBAL SYM .
+
+    $default  reduce using rule 20 (unsupp)
+
+
+State 113
+
+   98 regeq: REG '=' .
+
+    $default  reduce using rule 98 (regeq)
+
+
+State 114
+
+   46 label: SYM ':' .
+
+    $default  reduce using rule 46 (label)
+
+
+State 115
+
+    5 main: main pseudo ';' .
+
+    $default  reduce using rule 5 (main)
+
+
+State 116
+
+   16 globala: global ',' .
+
+    $default  reduce using rule 16 (globala)
+
+
+State 117
+
+   15 global: globala SYM .
+
+    $default  reduce using rule 15 (global)
+
+
+State 118
+
+   18 external: external ',' . SYM
+
+    SYM  shift, and go to state 195
+
+
+State 119
+
+   21 unsupp: unsupp ',' . SYM
+
+    SYM  shift, and go to state 196
+
+
+State 120
+
+   24 inita: init ',' .
+
+    $default  reduce using rule 24 (inita)
+
+
+State 121
+
+   22 init: inita expr .
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND  shift, and go to state 172
+    OR   shift, and go to state 173
+    XOR  shift, and go to state 174
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+
+    $default  reduce using rule 22 (init)
+
+
+State 122
+
+   27 consym: constant ',' . SYM
+
+    SYM  shift, and go to state 197
+
+
+State 123
+
+   25 constant: consym '=' . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 198
+
+
+State 124
+
+   32 varstart: var ',' .
+
+    $default  reduce using rule 32 (varstart)
+
+
+State 125
+
+   30 var: varstart SYM . varsize
+
+    '['  shift, and go to state 193
+
+    $default  reduce using rule 33 (varsize)
+
+    varsize  go to state 199
+
+
+State 126
+
+   45 insn: ichain ';' .
+
+    $default  reduce using rule 45 (insn)
+
+
+State 127
+
+   51 jchain: ichain ',' .
+
+    $default  reduce using rule 51 (jchain)
+
+
+State 128
+
+   49 ichain: jchain iins .
+
+    $default  reduce using rule 49 (ichain)
+
+
+State 129
+
+   50 ichain: jchain gins .
+
+    $default  reduce using rule 50 (ichain)
+
+
+State 130
+
+   64 pdxfer: memref '=' . REG
+  146 spec: memref '=' . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    REG  shift, and go to state 200
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 201
+
+
+State 131
+
+   65 memref: pmdml REG . ',' REG ')'
+
+    ','  shift, and go to state 202
+
+
+State 132
+
+  145 spec: pmdml expr . ')' '=' REG
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND  shift, and go to state 172
+    OR   shift, and go to state 173
+    XOR  shift, and go to state 174
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+    ')'  shift, and go to state 203
+
+
+State 133
+
+   66 pmdml: pmdm '(' .
+
+    $default  reduce using rule 66 (pmdml)
+
+
+State 134
+
+   79 alur: PASS . REG
+   85     | PASS . nexpr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    REG  shift, and go to state 204
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    nexpr  go to state 205
+    expr   go to state 206
+
+
+State 135
+
+   81 alur: NOT . REG
+  174 expr: NOT . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    REG  shift, and go to state 207
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 166
+
+
+State 136
+
+   82 alur: ABS . REG
+  175 expr: ABS . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    REG  shift, and go to state 208
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 167
+
+
+State 137
+
+   94 bitop: TSTBIT .
+
+    $default  reduce using rule 94 (bitop)
+
+
+State 138
+
+   95 bitop: SETBIT .
+
+    $default  reduce using rule 95 (bitop)
+
+
+State 139
+
+   96 bitop: CLRBIT .
+
+    $default  reduce using rule 96 (bitop)
+
+
+State 140
+
+   97 bitop: TGLBIT .
+
+    $default  reduce using rule 97 (bitop)
+
+
+State 141
+
+  114 shift: regeq EXP . shreg SHCLASS
+
+    REG  shift, and go to state 209
+
+    shreg  go to state 210
+
+
+State 142
+
+  115 shift: regeq EXPADJ . shreg
+
+    REG  shift, and go to state 209
+
+    shreg  go to state 211
+
+
+State 143
+
+  125 spec: regeq DMOVLAY .
+
+    $default  reduce using rule 125 (spec)
+
+
+State 144
+
+   69 regxfer: regeq REG .
+   74 alur: REG . alucomm REG
+   89 regplus: REG . '+'
+   90 regminus: REG . '-'
+
+    AND  shift, and go to state 212
+    OR   shift, and go to state 213
+    XOR  shift, and go to state 214
+    '+'  shift, and go to state 215
+    '-'  shift, and go to state 216
+
+    $default  reduce using rule 69 (regxfer)
+
+    alucomm  go to state 217
+
+
+State 145
+
+   80 alur: '-' . REG
+  173 expr: '-' . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    REG  shift, and go to state 218
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 168
+
+
+State 146
+
+   63 pdxfer: regeq memref .
+
+    $default  reduce using rule 63 (pdxfer)
+
+
+State 147
+
+   65 memref: pmdml . REG ',' REG ')'
+  144 spec: regeq pmdml . expr ')'
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    REG  shift, and go to state 131
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 219
+
+
+State 148
+
+   70 alu: regeq alur .
+
+    $default  reduce using rule 70 (alu)
+
+
+State 149
+
+   75 alur: regplus . REG
+   76     | regplus . carried
+   83     | regplus . nexpr
+
+    CARRY  shift, and go to state 220
+    NOT    shift, and go to state 87
+    ABS    shift, and go to state 88
+    NUM    shift, and go to state 89
+    REG    shift, and go to state 221
+    SYM    shift, and go to state 90
+    '-'    shift, and go to state 91
+    '^'    shift, and go to state 92
+    '%'    shift, and go to state 93
+    '('    shift, and go to state 94
+
+    carried  go to state 222
+    regplus  go to state 223
+    nexpr    go to state 224
+    expr     go to state 206
+
+
+State 150
+
+   77 alur: regminus . REG
+   78     | regminus . REG '+' CARRY '-' NUM
+   84     | regminus . nexpr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    REG  shift, and go to state 225
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    nexpr  go to state 226
+    expr   go to state 206
+
+
+State 151
+
+   86 alur: bitop . nexpr OF REG
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    nexpr  go to state 227
+    expr   go to state 206
+
+
+State 152
+
+  128 spec: regeq ioref .
+
+    $default  reduce using rule 128 (spec)
+
+
+State 153
+
+  127 spec: regeq expr .
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND  shift, and go to state 172
+    OR   shift, and go to state 173
+    XOR  shift, and go to state 174
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+
+    $default  reduce using rule 127 (spec)
+
+
+State 154
+
+  100 mac: mrormf '=' . macrs
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    MR   shift, and go to state 228
+    NUM  shift, and go to state 89
+    REG  shift, and go to state 229
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    macrs   go to state 230
+    mrpm    go to state 231
+    macmul  go to state 232
+    expr    go to state 233
+
+
+State 155
+
+  138 spec: srt FLAG .
+
+    $default  reduce using rule 138 (spec)
+
+
+State 156
+
+  129 spec: ioref '=' . REG
+
+    REG  shift, and go to state 234
+
+
+State 157
+
+  142 spec: calljump '(' . REG ')'
+  163 expr: '(' . expr ')'
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    REG  shift, and go to state 235
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 171
+
+
+State 158
+
+  143 spec: calljump expr .
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND  shift, and go to state 172
+    OR   shift, and go to state 173
+    XOR  shift, and go to state 174
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+
+    $default  reduce using rule 143 (spec)
+
+
+State 159
+
+  136 spec: enadis INTS .
+
+    $default  reduce using rule 136 (spec)
+
+
+State 160
+
+  137 spec: enadis ENADISREG .
+
+    $default  reduce using rule 137 (spec)
+
+
+State 161
+
+  161 cond: NOT COND .
+
+    $default  reduce using rule 161 (cond)
+
+
+State 162
+
+   60 iff: IF maybenot FLAG_IN .
+
+    $default  reduce using rule 60 (iff)
+
+
+State 163
+
+   72 alu: DIVS REG ',' . REG
+
+    REG  shift, and go to state 236
+
+
+State 164
+
+  155 ioref: IO '(' expr . ')'
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND  shift, and go to state 172
+    OR   shift, and go to state 173
+    XOR  shift, and go to state 174
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+    ')'  shift, and go to state 237
+
+
+State 165
+
+  126 spec: DMOVLAY '=' REG .
+
+    $default  reduce using rule 126 (spec)
+
+
+State 166
+
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+  174     | NOT expr .
+
+    $default  reduce using rule 174 (expr)
+
+
+State 167
+
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+  175     | ABS expr .
+
+    $default  reduce using rule 175 (expr)
+
+
+State 168
+
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+  173     | '-' expr .
+
+    $default  reduce using rule 173 (expr)
+
+
+State 169
+
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+  176     | '^' expr .
+
+    $default  reduce using rule 176 (expr)
+
+
+State 170
+
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+  177     | '%' expr .
+
+    $default  reduce using rule 177 (expr)
+
+
+State 171
+
+  163 expr: '(' expr . ')'
+  164     | expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND  shift, and go to state 172
+    OR   shift, and go to state 173
+    XOR  shift, and go to state 174
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+    ')'  shift, and go to state 238
+
+
+State 172
+
+  168 expr: expr AND . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 239
+
+
+State 173
+
+  169 expr: expr OR . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 240
+
+
+State 174
+
+  170 expr: expr XOR . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 241
+
+
+State 175
+
+  149 ucond: UNTIL . cond
+  151      | UNTIL . FOREVER
+
+    NOT      shift, and go to state 242
+    FOREVER  shift, and go to state 243
+    COND     shift, and go to state 80
+
+    cond  go to state 244
+
+
+State 176
+
+  171 expr: expr LL . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 245
+
+
+State 177
+
+  172 expr: expr RR . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 246
+
+
+State 178
+
+  164 expr: expr '+' . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 247
+
+
+State 179
+
+  165 expr: expr '-' . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 248
+
+
+State 180
+
+  166 expr: expr '*' . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 249
+
+
+State 181
+
+  167 expr: expr '/' . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 250
+
+
+State 182
+
+  139 spec: DO expr ucond .
+
+    $default  reduce using rule 139 (spec)
+
+
+State 183
+
+   81 alur: NOT . REG
+
+    REG  shift, and go to state 207
+
+
+State 184
+
+   82 alur: ABS . REG
+
+    REG  shift, and go to state 208
+
+
+State 185
+
+   74 alur: REG . alucomm REG
+   89 regplus: REG . '+'
+   90 regminus: REG . '-'
+
+    AND  shift, and go to state 212
+    OR   shift, and go to state 213
+    XOR  shift, and go to state 214
+    '+'  shift, and go to state 215
+    '-'  shift, and go to state 216
+
+    alucomm  go to state 217
+
+
+State 186
+
+   80 alur: '-' . REG
+
+    REG  shift, and go to state 218
+
+
+State 187
+
+   71 alu: NONE '=' alur .
+
+    $default  reduce using rule 71 (alu)
+
+
+State 188
+
+  133 spec: MODIFY '(' REG . ',' REG ')'
+
+    ','  shift, and go to state 251
+
+
+State 189
+
+  124 mayshor: SR . OR
+
+    OR  shift, and go to state 252
+
+
+State 190
+
+  113 shift: SR '=' mayshor . shifter shrega SHCLASS
+
+    ASHIFT  shift, and go to state 253
+    LSHIFT  shift, and go to state 254
+    NORM    shift, and go to state 255
+
+    shifter  go to state 256
+
+
+State 191
+
+   36 memattra: memattra '/' . romram
+   37         | memattra '/' . pmdm
+   38         | memattra '/' . CIRC
+   40 memattrb: memattra '/' . ABS '=' expr
+
+    ABS   shift, and go to state 257
+    DM    shift, and go to state 10
+    PM    shift, and go to state 11
+    ROM   shift, and go to state 258
+    RAM   shift, and go to state 259
+    CIRC  shift, and go to state 260
+
+    romram  go to state 261
+    pmdm    go to state 262
+
+
+State 192
+
+   28 module: MODULE memattr SYM .
+
+    $default  reduce using rule 28 (module)
+
+
+State 193
+
+   34 varsize: '[' . expr ']'
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 263
+
+
+State 194
+
+   23 inita: INIT SYM varsize . ':'
+
+    ':'  shift, and go to state 264
+
+
+State 195
+
+   18 external: external ',' SYM .
+
+    $default  reduce using rule 18 (external)
+
+
+State 196
+
+   21 unsupp: unsupp ',' SYM .
+
+    $default  reduce using rule 21 (unsupp)
+
+
+State 197
+
+   27 consym: constant ',' SYM .
+
+    $default  reduce using rule 27 (consym)
+
+
+State 198
+
+   25 constant: consym '=' expr .
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND  shift, and go to state 172
+    OR   shift, and go to state 173
+    XOR  shift, and go to state 174
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+
+    $default  reduce using rule 25 (constant)
+
+
+State 199
+
+   30 var: varstart SYM varsize .
+
+    $default  reduce using rule 30 (var)
+
+
+State 200
+
+   64 pdxfer: memref '=' REG .
+
+    $default  reduce using rule 64 (pdxfer)
+
+
+State 201
+
+  146 spec: memref '=' expr .
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND  shift, and go to state 172
+    OR   shift, and go to state 173
+    XOR  shift, and go to state 174
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+
+    $default  reduce using rule 146 (spec)
+
+
+State 202
+
+   65 memref: pmdml REG ',' . REG ')'
+
+    REG  shift, and go to state 265
+
+
+State 203
+
+  145 spec: pmdml expr ')' . '=' REG
+
+    '='  shift, and go to state 266
+
+
+State 204
+
+   79 alur: PASS REG .
+
+    $default  reduce using rule 79 (alur)
+
+
+State 205
+
+   85 alur: PASS nexpr .
+
+    $default  reduce using rule 85 (alur)
+
+
+State 206
+
+   99 nexpr: expr .
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND  shift, and go to state 172
+    OR   shift, and go to state 173
+    XOR  shift, and go to state 174
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+
+    $default  reduce using rule 99 (nexpr)
+
+
+State 207
+
+   81 alur: NOT REG .
+
+    $default  reduce using rule 81 (alur)
+
+
+State 208
+
+   82 alur: ABS REG .
+
+    $default  reduce using rule 82 (alur)
+
+
+State 209
+
+  117 shreg: REG .
+
+    $default  reduce using rule 117 (shreg)
+
+
+State 210
+
+  114 shift: regeq EXP shreg . SHCLASS
+
+    SHCLASS  shift, and go to state 267
+
+
+State 211
+
+  115 shift: regeq EXPADJ shreg .
+
+    $default  reduce using rule 115 (shift)
+
+
+State 212
+
+   91 alucomm: AND .
+
+    $default  reduce using rule 91 (alucomm)
+
+
+State 213
+
+   92 alucomm: OR .
+
+    $default  reduce using rule 92 (alucomm)
+
+
+State 214
+
+   93 alucomm: XOR .
+
+    $default  reduce using rule 93 (alucomm)
+
+
+State 215
+
+   89 regplus: REG '+' .
+
+    $default  reduce using rule 89 (regplus)
+
+
+State 216
+
+   90 regminus: REG '-' .
+
+    $default  reduce using rule 90 (regminus)
+
+
+State 217
+
+   74 alur: REG alucomm . REG
+
+    REG  shift, and go to state 268
+
+
+State 218
+
+   80 alur: '-' REG .
+
+    $default  reduce using rule 80 (alur)
+
+
+State 219
+
+  144 spec: regeq pmdml expr . ')'
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND  shift, and go to state 172
+    OR   shift, and go to state 173
+    XOR  shift, and go to state 174
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+    ')'  shift, and go to state 269
+
+
+State 220
+
+   88 carried: CARRY .
+
+    $default  reduce using rule 88 (carried)
+
+
+State 221
+
+   75 alur: regplus REG .
+   89 regplus: REG . '+'
+
+    '+'  shift, and go to state 215
+
+    $default  reduce using rule 75 (alur)
+
+
+State 222
+
+   76 alur: regplus carried .
+
+    $default  reduce using rule 76 (alur)
+
+
+State 223
+
+   87 carried: regplus . CARRY
+
+    CARRY  shift, and go to state 270
+
+
+State 224
+
+   83 alur: regplus nexpr .
+
+    $default  reduce using rule 83 (alur)
+
+
+State 225
+
+   77 alur: regminus REG .
+   78     | regminus REG . '+' CARRY '-' NUM
+
+    '+'  shift, and go to state 271
+
+    $default  reduce using rule 77 (alur)
+
+
+State 226
+
+   84 alur: regminus nexpr .
+
+    $default  reduce using rule 84 (alur)
+
+
+State 227
+
+   86 alur: bitop nexpr . OF REG
+
+    OF  shift, and go to state 272
+
+
+State 228
+
+  105 macrs: MR .
+  106      | MR . MACCLASS
+  108 mrpm: MR . '+'
+  109     | MR . '-'
+
+    MACCLASS  shift, and go to state 273
+    '+'       shift, and go to state 274
+    '-'       shift, and go to state 275
+
+    $default  reduce using rule 105 (macrs)
+
+
+State 229
+
+  110 macmul: REG . '*' macr MACCLASS
+
+    '*'  shift, and go to state 276
+
+
+State 230
+
+  100 mac: mrormf '=' macrs .
+
+    $default  reduce using rule 100 (mac)
+
+
+State 231
+
+  104 macrs: mrpm . macmul
+
+    REG  shift, and go to state 229
+
+    macmul  go to state 277
+
+
+State 232
+
+  103 macrs: macmul .
+
+    $default  reduce using rule 103 (macrs)
+
+
+State 233
+
+  107 macrs: expr .
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND  shift, and go to state 172
+    OR   shift, and go to state 173
+    XOR  shift, and go to state 174
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+
+    $default  reduce using rule 107 (macrs)
+
+
+State 234
+
+  129 spec: ioref '=' REG .
+
+    $default  reduce using rule 129 (spec)
+
+
+State 235
+
+  142 spec: calljump '(' REG . ')'
+
+    ')'  shift, and go to state 278
+
+
+State 236
+
+   72 alu: DIVS REG ',' REG .
+
+    $default  reduce using rule 72 (alu)
+
+
+State 237
+
+  155 ioref: IO '(' expr ')' .
+
+    $default  reduce using rule 155 (ioref)
+
+
+State 238
+
+  163 expr: '(' expr ')' .
+
+    $default  reduce using rule 163 (expr)
+
+
+State 239
+
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  168     | expr AND expr .
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+
+    $default  reduce using rule 168 (expr)
+
+
+State 240
+
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  169     | expr OR expr .
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND  shift, and go to state 172
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+
+    $default  reduce using rule 169 (expr)
+
+
+State 241
+
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  170     | expr XOR expr .
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND  shift, and go to state 172
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+
+    $default  reduce using rule 170 (expr)
+
+
+State 242
+
+  161 cond: NOT . COND
+
+    COND  shift, and go to state 161
+
+
+State 243
+
+  151 ucond: UNTIL FOREVER .
+
+    $default  reduce using rule 151 (ucond)
+
+
+State 244
+
+  149 ucond: UNTIL cond .
+
+    $default  reduce using rule 149 (ucond)
+
+
+State 245
+
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  171     | expr LL expr .
+  172     | expr . RR expr
+
+    LL  error (nonassociative)
+    RR  error (nonassociative)
+
+    $default  reduce using rule 171 (expr)
+
+
+State 246
+
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+  172     | expr RR expr .
+
+    LL  error (nonassociative)
+    RR  error (nonassociative)
+
+    $default  reduce using rule 172 (expr)
+
+
+State 247
+
+  164 expr: expr . '+' expr
+  164     | expr '+' expr .
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+
+    $default  reduce using rule 164 (expr)
+
+
+State 248
+
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  165     | expr '-' expr .
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+
+    $default  reduce using rule 165 (expr)
+
+
+State 249
+
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  166     | expr '*' expr .
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    LL  shift, and go to state 176
+    RR  shift, and go to state 177
+
+    $default  reduce using rule 166 (expr)
+
+
+State 250
+
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  167     | expr '/' expr .
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    LL  shift, and go to state 176
+    RR  shift, and go to state 177
+
+    $default  reduce using rule 167 (expr)
+
+
+State 251
+
+  133 spec: MODIFY '(' REG ',' . REG ')'
+
+    REG  shift, and go to state 279
+
+
+State 252
+
+  124 mayshor: SR OR .
+
+    $default  reduce using rule 124 (mayshor)
+
+
+State 253
+
+  120 shifter: ASHIFT .
+
+    $default  reduce using rule 120 (shifter)
+
+
+State 254
+
+  121 shifter: LSHIFT .
+
+    $default  reduce using rule 121 (shifter)
+
+
+State 255
+
+  122 shifter: NORM .
+
+    $default  reduce using rule 122 (shifter)
+
+
+State 256
+
+  113 shift: SR '=' mayshor shifter . shrega SHCLASS
+
+    REG  shift, and go to state 209
+
+    shreg   go to state 280
+    shrega  go to state 281
+
+
+State 257
+
+   40 memattrb: memattra '/' ABS . '=' expr
+
+    '='  shift, and go to state 282
+
+
+State 258
+
+   42 romram: ROM .
+
+    $default  reduce using rule 42 (romram)
+
+
+State 259
+
+   43 romram: RAM .
+
+    $default  reduce using rule 43 (romram)
+
+
+State 260
+
+   38 memattra: memattra '/' CIRC .
+
+    $default  reduce using rule 38 (memattra)
+
+
+State 261
+
+   36 memattra: memattra '/' romram .
+
+    $default  reduce using rule 36 (memattra)
+
+
+State 262
+
+   37 memattra: memattra '/' pmdm .
+
+    $default  reduce using rule 37 (memattra)
+
+
+State 263
+
+   34 varsize: '[' expr . ']'
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND  shift, and go to state 172
+    OR   shift, and go to state 173
+    XOR  shift, and go to state 174
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+    ']'  shift, and go to state 283
+
+
+State 264
+
+   23 inita: INIT SYM varsize ':' .
+
+    $default  reduce using rule 23 (inita)
+
+
+State 265
+
+   65 memref: pmdml REG ',' REG . ')'
+
+    ')'  shift, and go to state 284
+
+
+State 266
+
+  145 spec: pmdml expr ')' '=' . REG
+
+    REG  shift, and go to state 285
+
+
+State 267
+
+  114 shift: regeq EXP shreg SHCLASS .
+
+    $default  reduce using rule 114 (shift)
+
+
+State 268
+
+   74 alur: REG alucomm REG .
+
+    $default  reduce using rule 74 (alur)
+
+
+State 269
+
+  144 spec: regeq pmdml expr ')' .
+
+    $default  reduce using rule 144 (spec)
+
+
+State 270
+
+   87 carried: regplus CARRY .
+
+    $default  reduce using rule 87 (carried)
+
+
+State 271
+
+   78 alur: regminus REG '+' . CARRY '-' NUM
+
+    CARRY  shift, and go to state 286
+
+
+State 272
+
+   86 alur: bitop nexpr OF . REG
+
+    REG  shift, and go to state 287
+
+
+State 273
+
+  106 macrs: MR MACCLASS .
+
+    $default  reduce using rule 106 (macrs)
+
+
+State 274
+
+  108 mrpm: MR '+' .
+
+    $default  reduce using rule 108 (mrpm)
+
+
+State 275
+
+  109 mrpm: MR '-' .
+
+    $default  reduce using rule 109 (mrpm)
+
+
+State 276
+
+  110 macmul: REG '*' . macr MACCLASS
+
+    MF   shift, and go to state 288
+    REG  shift, and go to state 289
+
+    macr  go to state 290
+
+
+State 277
+
+  104 macrs: mrpm macmul .
+
+    $default  reduce using rule 104 (macrs)
+
+
+State 278
+
+  142 spec: calljump '(' REG ')' .
+
+    $default  reduce using rule 142 (spec)
+
+
+State 279
+
+  133 spec: MODIFY '(' REG ',' REG . ')'
+
+    ')'  shift, and go to state 291
+
+
+State 280
+
+  118 shrega: shreg .
+  119       | shreg . BY expr
+
+    BY  shift, and go to state 292
+
+    $default  reduce using rule 118 (shrega)
+
+
+State 281
+
+  113 shift: SR '=' mayshor shifter shrega . SHCLASS
+
+    SHCLASS  shift, and go to state 293
+
+
+State 282
+
+   40 memattrb: memattra '/' ABS '=' . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 294
+
+
+State 283
+
+   34 varsize: '[' expr ']' .
+
+    $default  reduce using rule 34 (varsize)
+
+
+State 284
+
+   65 memref: pmdml REG ',' REG ')' .
+
+    $default  reduce using rule 65 (memref)
+
+
+State 285
+
+  145 spec: pmdml expr ')' '=' REG .
+
+    $default  reduce using rule 145 (spec)
+
+
+State 286
+
+   78 alur: regminus REG '+' CARRY . '-' NUM
+
+    '-'  shift, and go to state 295
+
+
+State 287
+
+   86 alur: bitop nexpr OF REG .
+
+    $default  reduce using rule 86 (alur)
+
+
+State 288
+
+  112 macr: MF .
+
+    $default  reduce using rule 112 (macr)
+
+
+State 289
+
+  111 macr: REG .
+
+    $default  reduce using rule 111 (macr)
+
+
+State 290
+
+  110 macmul: REG '*' macr . MACCLASS
+
+    MACCLASS  shift, and go to state 296
+
+
+State 291
+
+  133 spec: MODIFY '(' REG ',' REG ')' .
+
+    $default  reduce using rule 133 (spec)
+
+
+State 292
+
+  119 shrega: shreg BY . expr
+
+    NOT  shift, and go to state 87
+    ABS  shift, and go to state 88
+    NUM  shift, and go to state 89
+    SYM  shift, and go to state 90
+    '-'  shift, and go to state 91
+    '^'  shift, and go to state 92
+    '%'  shift, and go to state 93
+    '('  shift, and go to state 94
+
+    expr  go to state 297
+
+
+State 293
+
+  113 shift: SR '=' mayshor shifter shrega SHCLASS .
+
+    $default  reduce using rule 113 (shift)
+
+
+State 294
+
+   40 memattrb: memattra '/' ABS '=' expr .
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND  shift, and go to state 172
+    OR   shift, and go to state 173
+    XOR  shift, and go to state 174
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+
+    $default  reduce using rule 40 (memattrb)
+
+
+State 295
+
+   78 alur: regminus REG '+' CARRY '-' . NUM
+
+    NUM  shift, and go to state 298
+
+
+State 296
+
+  110 macmul: REG '*' macr MACCLASS .
+
+    $default  reduce using rule 110 (macmul)
+
+
+State 297
+
+  119 shrega: shreg BY expr .
+  164 expr: expr . '+' expr
+  165     | expr . '-' expr
+  166     | expr . '*' expr
+  167     | expr . '/' expr
+  168     | expr . AND expr
+  169     | expr . OR expr
+  170     | expr . XOR expr
+  171     | expr . LL expr
+  172     | expr . RR expr
+
+    AND  shift, and go to state 172
+    OR   shift, and go to state 173
+    XOR  shift, and go to state 174
+    LL   shift, and go to state 176
+    RR   shift, and go to state 177
+    '+'  shift, and go to state 178
+    '-'  shift, and go to state 179
+    '*'  shift, and go to state 180
+    '/'  shift, and go to state 181
+
+    $default  reduce using rule 119 (shrega)
+
+
+State 298
+
+   78 alur: regminus REG '+' CARRY '-' NUM .
+
+    $default  reduce using rule 78 (alur)

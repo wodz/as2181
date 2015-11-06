@@ -1,0 +1,4 @@
+ALU xop = const + C, const + C - 1, etc. -- not described in the book, but maybe working
+- destination registers!
+- writes to read-only registers etc.
+- multiple DO's to the same address
