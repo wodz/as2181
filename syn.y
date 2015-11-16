@@ -11,6 +11,7 @@
 %{
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "as2181.h"
 

@@ -2,7 +2,7 @@
 # (c) 1996 Martin Mares, <mj@k332.feld.cvut.cz>
 
 OPT=-fomit-frame-pointer -O2
-CFLAGS=$(OPT) -Wall -Wno-parentheses
+CFLAGS=$(OPT) -Wall -Wno-parentheses -Wno-unused-result
 LDFLAGS=-s
 
 AOBJS=main.o lex.yy.o syn.tab.o kwds.o lists.o expr.o mem.o dump.o
@@ -45,7 +45,7 @@ tags:
 	etags *.[ch]
 
 clean:
-	rm -f *.o adspc as2181 mkrom *~ \#*\# TAGS lex.yy.c syn.{tab.[ch],output} kwds.c
+	rm -f *.o adspc as2181 mkrom *~ \#*\# TAGS lex.yy.c syn.tab.[ch] syn.output kwds.c
 
 backup: clean
 	tar czvvf adsp`date +%d%m%y`.tgz .

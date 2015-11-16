@@ -14,13 +14,14 @@
 #include <termios.h>
 #include <signal.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #include "glob.h"
 
 static char *name = "/dev/adsp";
 static int fd;
 
-static void cerr(char *, char *) NONRET;
+static void cerr(const char *, ...) NONRET;
 static void perr(char *, char *) NONRET;
 
 static struct termios tios = {
@@ -33,11 +34,14 @@ static struct termios tios = {
 	};
 
 static void
-cerr(char *err, char *par)
+cerr(const char *format, ...)
 {
+        va_list ap;
+        va_start(ap, format);
 	fputs("adspc: ", stderr);
-	fprintf(stderr, err, par);
+	vfprintf(stderr, format, ap);
 	fputc('\n', stderr);
+        va_end(ap);
 	exit(1);
 }
 
@@ -53,7 +57,7 @@ perr(char *err, char *par)
 static void
 sig(int unused)
 {
-	cerr("Timed out", NULL);
+	cerr("Timed out");
 }
 
 static char outbuf[256];
@@ -109,7 +113,7 @@ cgetc(void)
 			if (l < 0)
 				perr("Read error", NULL);
 			if (!l)
-				cerr("EOF detected (why?)", NULL);
+				cerr("EOF detected (why?)");
 			instart = inbuf;
 			instop = inbuf + l;
 		}
@@ -177,7 +181,7 @@ get_word(char **k)
 	char *d = c;
 
 	if (!c)
-		cerr("Argument expected", NULL);
+		cerr("Argument expected");
 	while (*c && *c != ',')
 		c++;
 	if (!*c)
@@ -192,7 +196,7 @@ static void
 test_end(char *k)
 {
 	if (k)
-		cerr("Too many arguments", NULL);
+		cerr("Too many arguments");
 }
 
 static ulg
@@ -213,7 +217,7 @@ get_hex16(char **k)
 {
 	ulg i  = get_hex(k);
 	if (i > 0xffff)
-		cerr("Number too large: %x", (char *) i);
+		cerr("Number too large: %x", i);
 	return i;
 }
 
@@ -356,7 +360,7 @@ download(char c, char *name)
 
 	test_end(name);
 	if (aa + ll > 65535)
-		cerr("Memory block for download too long", NULL);
+		cerr("Memory block for download too long");
 	if (!(f = fopen(ff, "w")))
 		perr("Unable to write %s", ff);
 	cputs("$U");
@@ -409,7 +413,7 @@ cparse(char c)
 		return c - '0';
 	else if (c >= 'A' && c <= 'F')
 		return c - 'A' + 10;
-	cerr("Unknown character in hexadecimal number: `%c'", (char *)(int) c);
+	cerr("Unknown character in hexadecimal number: `%c'", c);
 }
 
 static void
@@ -429,10 +433,10 @@ send(char *l)
 	dbs = 16384 * 3;
 	db = malloc(dbs);
 	if (!db)
-		cerr("Out of memory", NULL);
+		cerr("Out of memory");
 	prog = -1;
 	if (fgetc(f) != 27 || fgetc(f) != 27 || fgetc(f) != 'i' || fgetc(f) != '\r' || fgetc(f) != '\n')
-		cerr("Missing header", NULL);
+		cerr("Missing header");
 	pos = 0;
 	xpos = 0;
 	adr = 0;
@@ -466,8 +470,8 @@ send(char *l)
 						cerr("Invalid command: `%s'", buf);
 					sscanf(buf+4, "%x", &cs);
 					if (cs != css)
-						cerr("Mismatched checksum in input file", NULL);
-					memsend(db, adr, xpos, prog);
+						cerr("Mismatched checksum in input file");
+					memsend((char *)db, adr, xpos, prog);
 					pos = 0;
 					xpos = 0;
 					prog = -1;
@@ -475,7 +479,7 @@ send(char *l)
 			else if (buf[0] == '@')
 				{
 					if (prog != -1)
-						cerr("Misplaced `@' in `%s'", buf);
+						cerr("Misplaced `@' in `%s'");
 					if ((buf[1] != 'P' && buf[1] != 'D') || buf[2] != 'A' || buf[3])
 						cerr("Invalid command: `%s'", buf);
 					prog = (buf[1] == 'P') ? -2 : -3;
@@ -493,7 +497,7 @@ send(char *l)
 						{
 							int l = (cparse(k[0]) << 4) | cparse(k[1]);
 							if (pos >= dbs)
-								cerr("Section too long, cannot handle", NULL);
+								cerr("Section too long, cannot handle");
 							db[pos++] = l;
 							cs = (cs << 8) | l;
 							k += 2;
@@ -503,7 +507,7 @@ send(char *l)
 				}
 		}
 	if (prog >= 0)
-		cerr("Missing final '#'", NULL);
+		cerr("Missing final '#'");
 	fclose(f);
 }
 
@@ -517,7 +521,7 @@ go(char *k)
 	cputw(z);
 	cflush();
 	if (cgetw() != z)
-		cerr("Invalid reply", NULL);
+		cerr("Invalid reply");
 	puts("Started.");
 }
 
@@ -525,7 +529,7 @@ int
 main(int argc, char **argv)
 {
 	if (argc < 2)
-		cerr("Nothing happens...", NULL);
+		cerr("Nothing happens...");
 	argv++;
 	argc--;
 	if (!strcmp(argv[0], "-f") && argc >= 2)

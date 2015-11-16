@@ -12,21 +12,25 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #include "glob.h"
 
 static ulg rom_size;
 static byte *rom;
 
-static void cerr(char *, char *) NONRET;
+static void cerr(const char *, ...) NONRET;
 static void perr(char *, char *) NONRET;
 
 static void
-cerr(char *err, char *par)
+cerr(const char *format, ...)
 {
+  va_list ap;
+  va_start(ap, format);
   fputs("mkrom: ", stderr);
-  fprintf(stderr, err, par);
+  vfprintf(stderr, format, ap);
   fputc('\n', stderr);
+  va_end(ap);
   exit(1);
 }
 
@@ -46,7 +50,7 @@ cparse(char c)
 		return c - '0';
 	else if (c >= 'A' && c <= 'F')
 		return c - 'A' + 10;
-	cerr("Unknown character in hexadecimal number: `%c'", (char *)(int) c);
+	cerr("Unknown character in hexadecimal number: `%c'", c);
 }
 
 static void *
@@ -54,7 +58,7 @@ xmalloc(ulg size)
 {
   void *x = malloc(size);
   if (!x)
-	cerr("Out of memory", NULL);
+	cerr("Out of memory");
   return x;
 }
 
@@ -74,7 +78,7 @@ romify(char *ff, ulg pbase, ulg plen, ulg dbase, ulg dlen)
 	perr("Unable to read %s", ff);
   prog = -1;
   if (fgetc(f) != 27 || fgetc(f) != 27 || fgetc(f) != 'i' || fgetc(f) != '\r' || fgetc(f) != '\n')
-	cerr("Missing header", NULL);
+	cerr("Missing header");
   ws = pos = xpos = adr = base = len = 0;
   for(;;)
 	{
@@ -109,7 +113,7 @@ romify(char *ff, ulg pbase, ulg plen, ulg dbase, ulg dlen)
 			cerr("Invalid command: `%s'", buf);
 		  sscanf(buf+4, "%x", &cs);
 		  if (cs != css)
-			cerr("Mismatched checksum in input file", NULL);
+			cerr("Mismatched checksum in input file");
 		  printf(" %04x-%04x[%c]", base, xpos*ws-1+base, "DP"[prog]);
 		  fflush(stdout);
 		  pos = 0;
@@ -137,7 +141,7 @@ romify(char *ff, ulg pbase, ulg plen, ulg dbase, ulg dlen)
 			{
 			  int l = (cparse(k[0]) << 4) | cparse(k[1]);
 			  if (pos >= len)
-				cerr("Section too long, cannot handle", NULL);
+				cerr("Section too long, cannot handle");
 			  rom[base + pos++] = l;
 			  cs = (cs << 8) | l;
 			  k += 2;
@@ -147,7 +151,7 @@ romify(char *ff, ulg pbase, ulg plen, ulg dbase, ulg dlen)
 		}
 	}
   if (prog >= 0)
-	cerr("Missing final '#'", NULL);
+	cerr("Missing final '#'");
   fclose(f);
 }
 
@@ -182,7 +186,7 @@ Usage: mkrom dest-file rom-size-KB paddr,plen,daddr,dlen,file ...\n");
   dest_name = argv[1];
   rom_size = atol(argv[2]);
   if (rom_size < 1 || rom_size > 4096)
-	cerr("Invalid ROM size", NULL);
+	cerr("Invalid ROM size");
   printf("Building %dK ROM:", rom_size);
   fflush(stdout);
   rom_size *= 1024;
@@ -202,14 +206,14 @@ Usage: mkrom dest-file rom-size-KB paddr,plen,daddr,dlen,file ...\n");
 			p++;
 		  if (!*p)
 			{
-			  cerr("Argument syntax error", NULL);
+			  cerr("Argument syntax error");
 			  return 1;
 			}
 		  *p++ = 0;
 		  x[c] = strtol(l[c], NULL, 16);
 		}
 	  if (x[0] + x[1] > rom_size || x[2] + x[3] > rom_size)
-		cerr("Out of ROM space", NULL);
+		cerr("Out of ROM space");
 	  romify(p, x[0], x[1], x[2], x[3]);
 	  argc--;
 	  argv++;

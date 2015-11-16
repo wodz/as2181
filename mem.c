@@ -373,16 +373,25 @@ do_inits(void)
 			  ulg m;
 			  struct memblock *z = v->mem;
 
-			  if (z->isprog && (k > 0xffffff || k < -0x800000) ||
-				  !z->isprog && (k > 0xffff || k < -0x8000))
+                          if (dm24bit)
+                          {
+                              if (k > 0xffffff || k < -0x800000)
+                                  clerr(LINE(n), "Initializer %d out of range", k);
+                          }
+                          else
+                          {
+			      if (z->isprog && (k > 0xffffff || k < -0x800000) ||
+			 	  !z->isprog && (k > 0xffff || k < -0x8000))
 				  clerr(LINE(n), "Initializer %d out of range", k);
-			  if (z->isprog)
-				{
+                          }
+
+			  if (dm24bit || z->isprog)
+			  	{
 				  m = (r + v->offs) * 3;
 				  mem_set(z, m++, a >> 16);
-				}
+			  	}
 			  else
-				m = (r + v->offs) * 2;
+			  	m = (r + v->offs) * 2;
 			  mem_set(z, m++, a >> 8);
 			  mem_set(z, m, a);
 			}
@@ -432,7 +441,7 @@ write_result(char *name)
 	  if (!m->init)
 		continue;
 	  prog = m->isprog;
-	  skip = prog ? 3 : 2;
+	  skip = (prog || dm24bit) ? 3 : 2;
 	  fprintf(x, "@%cA\r\n%04X\r\n", prog ? 'P' : 'D', m->addr);
 	  csum = m->addr;
 	  j = m->init;
@@ -441,11 +450,11 @@ write_result(char *name)
 		  ulg z = (j[0] << 8 | j[1]);
 		  fprintf(x, "%02X%02X", j[0], j[1]);
 		  j += 2;
-		  if (prog)
-			{
+		  if (prog || dm24bit)
+		  	{
 			  fprintf(x, "%02X", *j);
 			  z = (z << 8) | *j++;
-			}
+		  	}
 		  csum += z;
 		  fputc('\n', x);
 		}

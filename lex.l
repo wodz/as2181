@@ -8,6 +8,9 @@
  *		of the GNU General Public License. See file COPYING in any of the GNU utilities.
  */
 
+%option nounput
+%option noinput
+
 %{
 #include <stdio.h>
 #include <stdlib.h>

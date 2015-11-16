@@ -14,7 +14,7 @@
 void fatal_error(char *, ...) NONRET;
 void *xmalloc(ulg);
 
-extern int verbose, case_insensitive, hide_warns, do_listing;
+extern int verbose, case_insensitive, hide_warns, do_listing, dm24bit;
 extern ulg debug;
 
 #define DEBUG_SWITCHES "pcvmVPCxr"

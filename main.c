@@ -15,9 +15,9 @@
 
 #include "as2181.h"
 
-static char *options = "o:pve:d:iwl";
+static char *options = "o:pve:d:iwlx";
 
-static char *help_string = "\n\
+static const char *help_string = "\n\
 Usage: as2181 [<options>] <source>\n\
 \n\
 -o file\tuse given output file instead of the default\n\
@@ -28,10 +28,11 @@ Usage: as2181 [<options>] <source>\n\
 -i\tbe case-insensitive\n\
 -w\thide all warnings\n\
 -l\tgenerate listing\n\
+-x\tuse 24bit DM space\n\
 \n";
 
 static int preprocess;
-int verbose, case_insensitive, hide_warns, do_listing;
+int verbose, case_insensitive, hide_warns, do_listing, dm24bit=0;
 ulg debug;
 
 void
@@ -59,7 +60,7 @@ static void help(void) NONRET;
 static void
 help(void)
 {
-  fprintf(stderr, help_string);
+  fprintf(stderr, "%s", help_string);
   exit(1);
 }
 
@@ -129,6 +130,9 @@ main(int argc, char **argv)
 	  case 'l':
 		do_listing++;
 		break;
+          case 'x':
+                dm24bit = 1;
+                break;
 	  default:
 		help();
 	  }
