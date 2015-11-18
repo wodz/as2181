@@ -532,6 +532,10 @@ alu:
 
 alur:
    REG alucomm REG { $$ = alu_op($1, $3, $2, $2); }
+ | REG alucomm nexpr {
+	ulg k = resolve_aluc($3, 0);
+	$$ = alu_num($1,k,$2);
+	}
  | regplus REG { $$ = alu_op($1, $2, 3, 3); }
  | regplus carried { $$ = alu_op($1, $2, 2, 2); }
  | regminus REG { $$ = alu_op($1, $2, 7, 9); }
