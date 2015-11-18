@@ -19,6 +19,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/wait.h>
 
 #include "as2181.h"
 #include "syn.tab.h"
@@ -488,7 +489,6 @@ init_lex(char *src, int preprocess)
 	  pid_t pid;
 	  int fh;
 	  int pip[2];
-	  char *cpp = "/lib/cpp";
 
 	  fh = open(src, O_RDONLY);			/* Test if the file exists */
 	  if (fh < 0)
@@ -499,17 +499,22 @@ init_lex(char *src, int preprocess)
 	  pid = fork();
 	  if (pid < 0)
 		err("Fork failed: %s", src, syserr());
-	  if (!pid)							/* CPP process */
+	  if (!pid)    /* child CPP process */
 		{
-		  close(1);						/* Redirect stdout to pipe */
-		  dup(pip[1]);
+		  dup2(pip[1], STDOUT_FILENO); /* duplicate pipe write end into stdout */
 		  close(pip[0]);
 		  close(pip[1]);
-		  execlp(cpp, cpp, "-Wall", "-nostdinc", "-undef", "-DADSP2181", "-traditional", "-$", src, NULL);
-		  err("Cannot execute %s: %s", cpp, syserr());
+
+                  /* Call cpp and direct output to pipe */
+		  execlp("cpp", "cpp",
+                         "-Wall", "-nostdinc", "-undef", "-DADSP2181",
+                         "-traditional-cpp", src, NULL);
+		  err("Cannot execute preprocessor: %s", syserr());
 		}
-	  close(pip[1]);					/* Get FILE for the pipe */
-	  infile = fdopen(pip[0], "r");
+	  close(pip[1]); /* close write end of the pipe */
+          wait(NULL);    /* wait for preprocessor to finish */
+	  infile = fdopen(pip[0], "r"); /* open preprocessed buffer for reading */
+
 	  if (!infile)
 		err("Error opening cpp pipe: %s", syserr());
 	}
