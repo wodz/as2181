@@ -107,15 +107,16 @@ dump_listing(void)
   con = HEAD(constlist);
   ins = HEAD(mod->insns);
 
+
   g = ioff = 0;
   ipos = mod->mem->addr;
   while (g < src_lines)
 	{
-	  if (ins && !ins->n.next)
+	  if (ins && !(NODE(ins))->next)
 		{
-		  if (mod->n.next)
+		  if (((NODE(mod))->next)->next)
 			{
-			  mod = (struct module *) mod->n.next;
+			  mod = (void *) (NODE(mod))->next;
 			  ins = HEAD(mod->insns);
 			  ipos = mod->mem->addr;
 			  ioff = 0;
@@ -123,9 +124,9 @@ dump_listing(void)
 		  else
 			ins = NULL;
 		}
-	  if (var && !var->n.next)
+	  if (var && !(NODE(var))->next)
 		var = NULL;
-	  if (con && !con->n.next)
+	  if (con && !(NODE(con))->next)
 		con = NULL;
 	  if (!ins && !var && !con)
 		{
@@ -145,15 +146,15 @@ dump_listing(void)
 						  (get_byte(mod->mem, ioff+1) << 8) | (get_byte(mod->mem, ioff+2)));
 				  ioff += 3;
 				}
-			  else if (ins->n.next->next && LINE(ins->n.next) == ins->line)
+			  else if (((NODE(ins))->next)->next && LINE((NODE(ins))->next) == ins->line)
 				{
-				  ins = (struct insn *) ins->n.next;
+				  ins = (struct insn *) (NODE(ins))->next;
 				  continue;
 				}
 			  else
 				sprintf(buf, "P %04X\t\t", ipos);
 			  gl = il;
-			  ins = (struct insn *) ins->n.next;
+			  ins = (struct insn *) (NODE(ins))->next;
 			}
 		  else if (vl <= il && vl <= cl)
 			{
@@ -161,14 +162,14 @@ dump_listing(void)
 					  var->offs + var->mem->addr, var->size);
 			  gl = vl;
 			  do
-				var = (struct var *) var->n.next;
-			  while (var->n.next && var->line == gl);
+				var = (struct var *) (NODE(var))->next;
+			  while ((NODE(var))->next && var->line == gl);
 			}
 		  else
 			{
 			  sprintf(buf, "C\t[%04X]\t", con->value);
 			  gl = cl;
-			  con = (struct constant *) con->n.next;
+			  con = (struct constant *) (NODE(con))->next;
 			}
 		}
 	  while (g < gl)
